@@ -37,14 +37,28 @@ public class UsersController {
 
     /**
      * Obtiene el perfil del usuario autenticado.
+     *
      * @param request HttpServletRequest para obtener el token JWT.
      * @return Perfil del usuario o mensaje de error.
      */
     @GetMapping("/profile")
     public ResponseEntity<?> getAuthenticatedUserProfile(HttpServletRequest request) {
+        System.out.println("Método HTTP recibido: " + request.getMethod());
+        logger.info("Solicitud GET recibida en /api/users/profile");
         try {
+            // Extraer el token del encabezado de la solicitud
             String token = jwtUtils.getJwtFromRequest(request);
+            System.out.println("Token recibido: " + token);
+
+            if (token == null || token.isEmpty()) {
+                logger.warn("Token no proporcionado en la solicitud.");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "No token provided."));
+            }
+
+            // Obtener el usuario autenticado basado en el token
             Optional<User> userOpt = userService.getAuthenticatedUser(token);
+
+            System.out.println("Usuario autenticado: " + (userOpt.isPresent() ? userOpt.get().getEmail() : "No encontrado"));
 
             if (userOpt.isPresent()) {
                 User user = userOpt.get();
@@ -54,29 +68,32 @@ public class UsersController {
                         .map(role -> new RoleDto(role.getId(), role.getName()))
                         .collect(Collectors.toList());
 
-                // Construir el perfil del usuario
+                // Construir el DTO del perfil del usuario
                 UserProfileDto userProfile = new UserProfileDto(user.getId(), user.getUsername(), roles);
 
-                logger.info("Perfil del usuario obtenido correctamente: {}", user.getUsername());
+                logger.info("Perfil del usuario obtenido correctamente para: {}", user.getUsername());
                 return ResponseEntity.ok(userProfile);
             } else {
-                logger.warn("Usuario no encontrado.");
+                logger.warn("Usuario no encontrado para el token proporcionado.");
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "User not found."));
             }
         } catch (Exception e) {
             logger.error("Error al obtener el perfil del usuario: {}", e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", "Error retrieving user profile."));
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Error retrieving user profile."));
         }
     }
 
     /**
      * Actualiza el perfil del usuario autenticado.
+     *
      * @param updateRequest Datos del usuario para actualizar.
      * @return Mensaje de éxito o error.
      */
     @PutMapping("/update")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> updateUser(@Valid @RequestBody SignUpRequest updateRequest) {
+        logger.info("Solicitud PUT recibida en /api/users/update");
         try {
             // Obtener el usuario autenticado
             String loggedInUsername = SecurityContextHolder.getContext().getAuthentication().getName();
@@ -102,6 +119,7 @@ public class UsersController {
 
     /**
      * Elimina un usuario (solo permitido para administradores).
+     *
      * @param id ID del usuario a eliminar.
      * @return Mensaje de éxito o error.
      */
@@ -114,7 +132,8 @@ public class UsersController {
             return ResponseEntity.ok(Map.of("message", "User deleted successfully!"));
         } catch (Exception e) {
             logger.error("Error al eliminar usuario. ID: {}, Error: {}", id, e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", "Error deleting user."));
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Error deleting user."));
         }
     }
 }
