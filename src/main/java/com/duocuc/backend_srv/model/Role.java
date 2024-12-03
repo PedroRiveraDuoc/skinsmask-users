@@ -2,6 +2,7 @@ package com.duocuc.backend_srv.model;
 
 import jakarta.persistence.*;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 
 @Entity
@@ -17,6 +18,7 @@ public class Role {
 
   @Column(unique = true, nullable = false)
   private String code;
+
   @ManyToMany(mappedBy = "roles")
   private Set<User> users = new HashSet<>();
 
@@ -35,6 +37,7 @@ public class Role {
     return id;
   }
 
+  // Generalmente, el setter de 'id' no es necesario si el ID es autogenerado
   public void setId(Long id) {
     this.id = id;
   }
@@ -61,6 +64,23 @@ public class Role {
 
   public void setUsers(Set<User> users) {
     this.users = users;
+  }
+
+  // Implementación de equals() y hashCode()
+  @Override
+  public boolean equals(Object o) {
+    if (this == o)
+      return true;
+    if (o == null || getClass() != o.getClass())
+      return false;
+
+    Role role = (Role) o;
+    return Objects.equals(name, role.name) && Objects.equals(code, role.code);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(name, code);
   }
 
   // toString para depuración
