@@ -2,7 +2,6 @@ package com.duocuc.backend_srv.controller;
 
 import java.util.Map;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -22,42 +21,57 @@ import jakarta.validation.Valid;
 @RequestMapping("/api/auth")
 public class AuthController {
 
-  @Autowired
-  private AuthenticationManager authenticationManager;
+    private final AuthenticationManager authenticationManager;
+    private final UserService userService;
+    private final JwtUtils jwtUtils;
 
-  @Autowired
-  private UserService userService;
-
-  @Autowired
-  private JwtUtils jwtUtils;
-
-  // Ruta para iniciar sesión
-  @PostMapping("/login")
-public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
-    Authentication authentication = authenticationManager.authenticate(
-        new UsernamePasswordAuthenticationToken(
-            loginRequest.getEmail(), // Cambiado a email
-            loginRequest.getPassword()));
-
-    SecurityContextHolder.getContext().setAuthentication(authentication);
-    String jwt = jwtUtils.generateJwtToken(authentication);
-
-    return ResponseEntity.ok(Map.of("token", jwt));
-}
-
-  // Ruta para registrar un usuario
-  @PostMapping("/signup")
-  public ResponseEntity<?> registerUser(@Valid @RequestBody SignUpRequest signUpRequest) {
-    if (userService.existsByUsername(signUpRequest.getUsername())) {
-      throw new UserAlreadyExistsException("Error: Username is already taken!");
+    // Constructor injection
+    public AuthController(AuthenticationManager authenticationManager, UserService userService, JwtUtils jwtUtils) {
+        this.authenticationManager = authenticationManager;
+        this.userService = userService;
+        this.jwtUtils = jwtUtils;
     }
 
-    // Registrar el nuevo usuario usando el método registerUser de UserService
-    userService.registerUser(
-        signUpRequest.getUsername(),
-        signUpRequest.getPassword(),
-        signUpRequest.getEmail());
+    /**
+     * Endpoint to authenticate user and generate a JWT token.
+     *
+     * @param loginRequest the login request containing email and password.
+     * @return ResponseEntity with the generated JWT token.
+     */
+    @PostMapping("/login")
+    public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
+        Authentication authentication = authenticationManager.authenticate(
+            new UsernamePasswordAuthenticationToken(
+                loginRequest.getEmail(),
+                loginRequest.getPassword()
+            )
+        );
 
-    return ResponseEntity.ok(Map.of("message", "User registered successfully!"));
-  }
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+        String jwt = jwtUtils.generateJwtToken(authentication);
+
+        return ResponseEntity.ok(Map.of("token", jwt));
+    }
+
+    /**
+     * Endpoint to register a new user.
+     *
+     * @param signUpRequest the signup request containing user details.
+     * @return ResponseEntity with a success message.
+     * @throws UserAlreadyExistsException if the username is already taken.
+     */
+    @PostMapping("/signup")
+    public ResponseEntity<?> registerUser(@Valid @RequestBody SignUpRequest signUpRequest) {
+        if (userService.existsByUsername(signUpRequest.getUsername())) {
+            throw new UserAlreadyExistsException("Error: Username is already taken!");
+        }
+
+        userService.registerUser(
+            signUpRequest.getUsername(),
+            signUpRequest.getPassword(),
+            signUpRequest.getEmail()
+        );
+
+        return ResponseEntity.ok(Map.of("message", "User registered successfully!"));
+    }
 }
