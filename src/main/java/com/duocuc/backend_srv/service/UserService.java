@@ -147,4 +147,8 @@ public class UserService {
     String email = jwtUtils.getAuthenticatedUsername(token);
     return userRepository.findByEmail(email);
   }
+
+  public boolean existsByEmail(String email) {
+    return userRepository.existsByEmail(email);
+  }
 }
