@@ -5,6 +5,8 @@ import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 @Entity
 @Table(name = "roles")
 public class Role {
@@ -20,6 +22,7 @@ public class Role {
   private String code;
 
   @ManyToMany(mappedBy = "roles")
+  @JsonIgnore
   private Set<User> users = new HashSet<>();
 
   // Constructor sin parámetros

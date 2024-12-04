@@ -40,7 +40,7 @@ public class UserService {
    * @return The saved User object.
    */
   public User registerUser(String username, String password, String email) {
-    User user = new User();
+    User user = new User(username, password, email);
     user.setUsername(username);
     user.setEmail(email);
 

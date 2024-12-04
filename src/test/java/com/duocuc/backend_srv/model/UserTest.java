@@ -38,9 +38,8 @@ public class UserTest {
 
         assertFalse(violations.isEmpty(), "A blank username should produce validation errors.");
         assertTrue(
-            violations.stream().anyMatch(v -> v.getMessage().equals("Username is mandatory")),
-            "The error message should indicate that the username is mandatory."
-        );
+                violations.stream().anyMatch(v -> v.getMessage().equals("Username is mandatory")),
+                "The error message should indicate that the username is mandatory.");
     }
 
     @Test
@@ -51,9 +50,8 @@ public class UserTest {
 
         assertFalse(violations.isEmpty(), "An invalid email should produce validation errors.");
         assertTrue(
-            violations.stream().anyMatch(v -> v.getMessage().equals("Invalid email format")),
-            "The error message should indicate that the email format is invalid."
-        );
+                violations.stream().anyMatch(v -> v.getMessage().equals("Invalid email format")),
+                "The error message should indicate that the email format is invalid.");
     }
 
     @Test
@@ -64,9 +62,8 @@ public class UserTest {
 
         assertFalse(violations.isEmpty(), "A password that is too short should produce validation errors.");
         assertTrue(
-            violations.stream().anyMatch(v -> v.getMessage().contains("Password must be")),
-            "The error message should indicate the password constraints."
-        );
+                violations.stream().anyMatch(v -> v.getMessage().contains("Password must be")),
+                "The error message should indicate the password constraints.");
     }
 
     @Test
@@ -77,9 +74,8 @@ public class UserTest {
 
         assertFalse(violations.isEmpty(), "A password without special characters should produce validation errors.");
         assertTrue(
-            violations.stream().anyMatch(v -> v.getMessage().contains("Password must be")),
-            "The error message should indicate the password constraints."
-        );
+                violations.stream().anyMatch(v -> v.getMessage().contains("Password must be")),
+                "The error message should indicate the password constraints.");
     }
 
     @Test
@@ -90,9 +86,8 @@ public class UserTest {
 
         assertFalse(violations.isEmpty(), "A password that is too long should produce validation errors.");
         assertTrue(
-            violations.stream().anyMatch(v -> v.getMessage().contains("Password must be")),
-            "The error message should indicate the password constraints."
-        );
+                violations.stream().anyMatch(v -> v.getMessage().contains("Password must be")),
+                "The error message should indicate the password constraints.");
     }
 
     @Test
@@ -103,9 +98,8 @@ public class UserTest {
 
         assertFalse(violations.isEmpty(), "A password without numbers should produce validation errors.");
         assertTrue(
-            violations.stream().anyMatch(v -> v.getMessage().contains("Password must be")),
-            "The error message should indicate the password constraints."
-        );
+                violations.stream().anyMatch(v -> v.getMessage().contains("Password must be")),
+                "The error message should indicate the password constraints.");
     }
 
     @Test
@@ -116,8 +110,20 @@ public class UserTest {
 
         assertFalse(violations.isEmpty(), "A password without letters should produce validation errors.");
         assertTrue(
-            violations.stream().anyMatch(v -> v.getMessage().contains("Password must be")),
-            "The error message should indicate the password constraints."
-        );
+                violations.stream().anyMatch(v -> v.getMessage().contains("Password must be")),
+                "The error message should indicate the password constraints.");
     }
+
+    @Test
+    public void testPasswordValidation() {
+        User user = new User();
+        user.setPassword("Valid@1234");
+
+        ValidatorFactory factory = Validation.buildDefaultValidatorFactory();
+        Validator validator = factory.getValidator();
+
+        Set<ConstraintViolation<User>> violations = validator.validate(user);
+        assertTrue(violations.isEmpty(), "El password debería ser válido");
+    }
+
 }
