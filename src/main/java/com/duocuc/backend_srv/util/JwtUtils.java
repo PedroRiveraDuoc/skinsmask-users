@@ -31,7 +31,7 @@ public class JwtUtils {
      *
      * @return The signing key.
      */
-    private Key getSigningKey() {
+    protected Key getSigningKey() {
         String secret = jwtConfig.getSecret();
         if (secret == null || secret.isEmpty()) {
             throw new IllegalStateException("JWT secret cannot be null or empty");
@@ -132,4 +132,5 @@ public class JwtUtils {
         Claims claims = getClaimsFromToken(token);
         return claims.getSubject(); // Retrieves the username from the claims
     }
+
 }

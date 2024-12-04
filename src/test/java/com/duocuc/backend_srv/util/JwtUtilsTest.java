@@ -3,22 +3,23 @@ package com.duocuc.backend_srv.util;
 import com.duocuc.backend_srv.config.JwtConfig;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.security.Keys;
 import io.jsonwebtoken.security.SignatureException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
 import jakarta.servlet.http.HttpServletRequest;
 
 import java.security.Key;
 import java.util.Base64;
+import java.util.Collections;
 import java.util.Date;
-import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -31,9 +32,6 @@ public class JwtUtilsTest {
     private JwtConfig jwtConfig;
 
     @Mock
-    private Authentication authentication;
-
-    @Mock
     private HttpServletRequest request;
 
     private Key strongKey;
@@ -42,101 +40,150 @@ public class JwtUtilsTest {
     public void setUp() {
         MockitoAnnotations.openMocks(this);
 
-        // Configurar clave segura para pruebas
+        // Secure key setup
         strongKey = Keys.secretKeyFor(io.jsonwebtoken.SignatureAlgorithm.HS512);
         String encodedKey = Base64.getEncoder().encodeToString(strongKey.getEncoded());
 
         when(jwtConfig.getSecret()).thenReturn(encodedKey);
-        when(jwtConfig.getExpirationMs()).thenReturn(3600000); // 1 hora en milisegundos
+        when(jwtConfig.getExpirationMs()).thenReturn(3600000); // 1 hour in milliseconds
 
         jwtUtils = new JwtUtils(jwtConfig);
     }
 
+    @Test
+    public void testGenerateJwtToken() {
+        Authentication authentication = new UsernamePasswordAuthenticationToken(
+                "test@example.com",
+                null,
+                Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER")));
+
+        String token = jwtUtils.generateJwtToken(authentication);
+
+        assertNotNull(token, "Token should not be null.");
+        Claims claims = Jwts.parserBuilder()
+                .setSigningKey(strongKey)
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
+
+        assertEquals("test@example.com", claims.getSubject(), "Subject should match the email.");
+        assertEquals("ROLE_USER", claims.get("roles"), "Roles claim should match.");
+    }
 
     @Test
-    public void testValidateToken_Valid() {
-        String token = Jwts.builder()
+    public void testGetSigningKey() {
+        Key key = jwtUtils.getSigningKey();
+        assertNotNull(key, "Signing key should not be null.");
+        assertEquals(strongKey, key, "Signing key should match the configured key.");
+    }
+
+    @Test
+    public void testGetSigningKey_InvalidSecret() {
+        // Provide an invalid secret (less than 256 bits)
+        when(jwtConfig.getSecret()).thenReturn("short");
+
+        Exception exception = assertThrows(IllegalArgumentException.class, () -> jwtUtils.getSigningKey());
+
+        // Assert the actual exception message from the library
+        assertEquals("Last unit does not have enough valid bits", exception.getMessage());
+    }
+
+    @Test
+    public void testValidateToken_ValidToken() {
+        Authentication authentication = new UsernamePasswordAuthenticationToken(
+                "test@example.com",
+                null,
+                Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER")));
+
+        String token = jwtUtils.generateJwtToken(authentication);
+        assertTrue(jwtUtils.validateToken(token), "Valid token should pass validation.");
+    }
+
+    @Test
+    public void testValidateToken_ExpiredToken() {
+        String expiredToken = Jwts.builder()
                 .setSubject("test@example.com")
-                .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + 3600000)) // 1 hora
+                .setIssuedAt(new Date(System.currentTimeMillis() - 7200000)) // 2 hours ago
+                .setExpiration(new Date(System.currentTimeMillis() - 3600000)) // 1 hour ago
                 .signWith(strongKey)
                 .compact();
 
-        assertTrue(jwtUtils.validateToken(token), "El token debe ser válido.");
+        assertFalse(jwtUtils.validateToken(expiredToken), "Expired token should fail validation.");
     }
 
     @Test
-    public void testValidateToken_InvalidSignature() {
+    public void testValidateToken_NullToken() {
+        assertFalse(jwtUtils.validateToken(null), "Null token should fail validation.");
+    }
+
+    @Test
+    public void testValidateToken_MalformedToken() {
+        String malformedToken = "ThisIsNotAJwtToken";
+
+        assertFalse(jwtUtils.validateToken(malformedToken), "Malformed token should fail validation.");
+    }
+
+    @Test
+    public void testValidateToken_SignatureMismatch() {
+        String otherKeyEncoded = Base64.getEncoder()
+                .encodeToString(Keys.secretKeyFor(io.jsonwebtoken.SignatureAlgorithm.HS512).getEncoded());
+        Key otherKey = Keys.hmacShaKeyFor(Base64.getDecoder().decode(otherKeyEncoded));
+
         String token = Jwts.builder()
                 .setSubject("test@example.com")
                 .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + 3600000)) // 1 hora
-                .signWith(Keys.secretKeyFor(io.jsonwebtoken.SignatureAlgorithm.HS256))
+                .setExpiration(new Date(System.currentTimeMillis() + 3600000))
+                .signWith(otherKey)
                 .compact();
 
-        assertFalse(jwtUtils.validateToken(token), "El token debe ser inválido debido a la firma incorrecta.");
+        assertFalse(jwtUtils.validateToken(token), "Token signed with a different key should fail validation.");
     }
 
     @Test
-    public void testValidateToken_Expired() {
-        String token = Jwts.builder()
-                .setSubject("test@example.com")
-                .setIssuedAt(new Date(System.currentTimeMillis() - 3600000)) // 1 hora antes
-                .setExpiration(new Date(System.currentTimeMillis() - 1800000)) // Expirado hace 30 minutos
-                .signWith(strongKey)
-                .compact();
-
-        assertFalse(jwtUtils.validateToken(token), "El token debe ser inválido porque está expirado.");
-    }
-
-    @Test
-    public void testGetClaimsFromToken() {
-        String token = Jwts.builder()
-                .setSubject("test@example.com")
-                .claim("roles", "ROLE_USER")
-                .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + 3600000)) // 1 hora
-                .signWith(strongKey)
-                .compact();
-
-        Claims claims = jwtUtils.getClaimsFromToken(token);
-        assertEquals("test@example.com", claims.getSubject(), "El subject del token debe coincidir con el email.");
-        assertEquals("ROLE_USER", claims.get("roles"), "El token debe contener los roles correctos.");
-    }
-
-    @Test
-    public void testGetJwtFromRequest_ValidHeader() {
-        when(request.getHeader("Authorization")).thenReturn("Bearer my-jwt-token");
+    public void testGetJwtFromRequest() {
+        when(request.getHeader("Authorization")).thenReturn("Bearer ValidToken");
 
         String token = jwtUtils.getJwtFromRequest(request);
-        assertEquals("my-jwt-token", token, "El token extraído debe coincidir con el header.");
+        assertNotNull(token, "Token should not be null when Authorization header is present.");
+        assertEquals("ValidToken", token, "Token should be extracted correctly from the header.");
+    }
+
+    @Test
+    public void testGetJwtFromRequest_MissingHeader() {
+        when(request.getHeader("Authorization")).thenReturn(null);
+
+        String token = jwtUtils.getJwtFromRequest(request);
+        assertNull(token, "Token should be null when Authorization header is missing.");
     }
 
     @Test
     public void testGetJwtFromRequest_InvalidHeader() {
-        when(request.getHeader("Authorization")).thenReturn("InvalidToken");
+        when(request.getHeader("Authorization")).thenReturn("InvalidHeaderFormat");
 
         String token = jwtUtils.getJwtFromRequest(request);
-        assertNull(token, "El token debe ser nulo si el header no es válido.");
+        assertNull(token, "Token should be null when Authorization header format is invalid.");
     }
 
     @Test
     public void testGetAuthenticatedUsername() {
-        String token = Jwts.builder()
-                .setSubject("test@example.com")
-                .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + 3600000)) // 1 hora
-                .signWith(strongKey)
-                .compact();
+        Authentication authentication = new UsernamePasswordAuthenticationToken(
+                "test@example.com",
+                null,
+                Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER")));
+
+        String token = jwtUtils.generateJwtToken(authentication);
 
         String username = jwtUtils.getAuthenticatedUsername(token);
-        assertEquals("test@example.com", username, "El nombre de usuario autenticado debe coincidir con el token.");
+        assertNotNull(username, "Username should not be null for a valid token.");
+        assertEquals("test@example.com", username, "Username should match the subject in the token.");
     }
 
     @Test
-    public void testValidateToken_EmptyToken() {
-        String token = "";
+    public void testGetAuthenticatedUsername_InvalidToken() {
+        String invalidToken = "InvalidToken";
 
-        assertFalse(jwtUtils.validateToken(token), "El token vacío debe ser inválido.");
+        Exception exception = assertThrows(io.jsonwebtoken.JwtException.class,
+                () -> jwtUtils.getAuthenticatedUsername(invalidToken));
+        assertTrue(exception.getMessage().contains("JWT"), "Exception should indicate an issue with the JWT.");
     }
 }
