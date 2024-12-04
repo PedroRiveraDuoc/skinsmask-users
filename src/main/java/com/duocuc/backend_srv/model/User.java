@@ -1,6 +1,7 @@
 package com.duocuc.backend_srv.model;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.*;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -13,12 +14,20 @@ public class User {
   private Long id;
 
   @Column(unique = true, nullable = false)
+  @NotBlank(message = "Username is mandatory")
   private String username;
 
   @Column(nullable = false)
+  @NotBlank(message = "Password is mandatory")
+  @Pattern(
+      regexp = "^(?=.*[A-Za-z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{8,20}$",
+      message = "Password must be 8-20 characters long, include letters, numbers, and at least one special character"
+  )
   private String password;
 
   @Column(unique = true, nullable = false)
+  @NotBlank(message = "Email is mandatory")
+  @Email(message = "Invalid email format")
   private String email;
 
   @ManyToMany(fetch = FetchType.EAGER, cascade = { CascadeType.PERSIST, CascadeType.MERGE })
