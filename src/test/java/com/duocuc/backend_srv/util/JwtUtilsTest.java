@@ -1,21 +1,18 @@
 package com.duocuc.backend_srv.util;
 
 import com.duocuc.backend_srv.config.JwtConfig;
-import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.security.core.Authentication;
-
 import jakarta.servlet.http.HttpServletRequest;
-
 import java.security.Key;
 import java.util.Base64;
 import java.util.Date;
-
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
@@ -43,13 +40,15 @@ public class JwtUtilsTest {
         String encodedKey = Base64.getEncoder().encodeToString(strongKey.getEncoded());
 
         when(jwtConfig.getSecret()).thenReturn(encodedKey);
-        when(jwtConfig.getExpirationMs()).thenReturn((int) 3600000L); // 1 hour in milliseconds
+        when(jwtConfig.getExpirationMs()).thenReturn(3600000); // 1 hour in milliseconds
 
         jwtUtils = new JwtUtils(jwtConfig);
     }
 
+
     @Test
     public void testValidateToken_ExpiredToken() {
+        // Arrange
         String expiredToken = Jwts.builder()
                 .setSubject("test@example.com")
                 .setIssuedAt(new Date(System.currentTimeMillis() - 3600000L)) // 1 hour ago
@@ -57,25 +56,47 @@ public class JwtUtilsTest {
                 .signWith(strongKey)
                 .compact();
 
+        // Act
         boolean isValid = jwtUtils.validateToken(expiredToken);
+
+        // Assert
         assertFalse(isValid, "The token should be invalid because it is expired.");
     }
 
-
     @Test
     public void testGetJwtFromRequest_ValidHeader() {
+        // Arrange
         when(request.getHeader("Authorization")).thenReturn("Bearer my-jwt-token");
 
+        // Act
         String token = jwtUtils.getJwtFromRequest(request);
+
+        // Assert
         assertEquals("my-jwt-token", token, "The extracted token should match the value in the Authorization header.");
     }
 
     @Test
     public void testGetJwtFromRequest_NoHeader() {
+        // Arrange
         when(request.getHeader("Authorization")).thenReturn(null);
 
+        // Act
         String token = jwtUtils.getJwtFromRequest(request);
+
+        // Assert
         assertNull(token, "The token should be null when the Authorization header is missing.");
+    }
+
+    @Test
+    public void testGetJwtFromRequest_InvalidHeader() {
+        // Arrange
+        when(request.getHeader("Authorization")).thenReturn("Invalid my-jwt-token");
+
+        // Act
+        String token = jwtUtils.getJwtFromRequest(request);
+
+        // Assert
+        assertNull(token, "The token should be null when the Authorization header is invalid.");
     }
 
 }
