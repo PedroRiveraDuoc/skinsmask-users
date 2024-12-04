@@ -2,12 +2,17 @@ package com.duocuc.backend_srv.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 
 public class SignUpRequest {
   @NotBlank(message = "Username is required")
   private String username;
 
   @NotBlank(message = "Password is required")
+  @Pattern(
+    regexp = "^(?=.*[A-Za-z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{8,20}$",
+    message = "Password must be 8-20 characters long, include letters, numbers, and at least one special character"
+)
   private String password;
 
   @NotBlank(message = "Email is required")

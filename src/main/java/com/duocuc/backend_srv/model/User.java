@@ -21,6 +21,7 @@ public class User {
 
   @Column(nullable = false)
   @NotBlank(message = "Password is mandatory")
+  @Pattern(regexp = "^(?=.*[A-Za-z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{8,20}$", message = "Password must be 8-20 characters long, include letters, numbers, and at least one special character")
   private String password;
 
   @Column(unique = true, nullable = false)

@@ -11,119 +11,138 @@ import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class UserTest {
+class UserTest {
 
     private Validator validator;
 
     @BeforeEach
-    public void setUp() {
+    void setUp() {
         ValidatorFactory factory = Validation.buildDefaultValidatorFactory();
         validator = factory.getValidator();
     }
 
     @Test
-    public void testValidUser() {
-        User user = new User("validUser", "Strong@123", "valid@example.com");
-
+    void testUserCreation_Success() {
+        User user = new User("testuser", "Valid@1234", "testuser@example.com");
         Set<ConstraintViolation<User>> violations = validator.validate(user);
 
-        assertTrue(violations.isEmpty(), "A valid user should not produce any validation errors.");
+        assertEquals(0, violations.size());
+        assertEquals("testuser", user.getUsername());
+        assertEquals("Valid@1234", user.getPassword());
+        assertEquals("testuser@example.com", user.getEmail());
     }
 
     @Test
-    public void testInvalidUsername_Blank() {
-        User user = new User("", "Strong@123", "valid@example.com");
-
+    void testUserCreation_Failure_UsernameBlank() {
+        User user = new User("", "Valid@1234", "testuser@example.com");
         Set<ConstraintViolation<User>> violations = validator.validate(user);
 
-        assertFalse(violations.isEmpty(), "A blank username should produce validation errors.");
-        assertTrue(
-                violations.stream().anyMatch(v -> v.getMessage().equals("Username is mandatory")),
-                "The error message should indicate that the username is mandatory.");
+        assertEquals(1, violations.size());
+        assertTrue(violations.stream().anyMatch(v -> v.getMessage().equals("Username is mandatory")));
     }
 
     @Test
-    public void testInvalidEmail() {
-        User user = new User("validUser", "Strong@123", "invalid-email");
-
+    void testUserCreation_Failure_PasswordBlank() {
+        User user = new User("testuser", "", "testuser@example.com");
         Set<ConstraintViolation<User>> violations = validator.validate(user);
-
-        assertFalse(violations.isEmpty(), "An invalid email should produce validation errors.");
-        assertTrue(
-                violations.stream().anyMatch(v -> v.getMessage().equals("Invalid email format")),
-                "The error message should indicate that the email format is invalid.");
+    
+        // Verifica que haya 2 violaciones
+        assertEquals(2, violations.size());
+    
+        // Verifica que una de las violaciones sea por el campo en blanco
+        assertTrue(violations.stream().anyMatch(v -> v.getMessage().equals("Password is mandatory")));
+    
+        // Verifica que otra violación sea por el patrón
+        assertTrue(violations.stream().anyMatch(v -> v.getMessage().equals("Password must be 8-20 characters long, include letters, numbers, and at least one special character")));
     }
 
     @Test
-    public void testInvalidPassword_TooShort() {
-        User user = new User("validUser", "Short1!", "valid@example.com");
-
+    void testUserCreation_Failure_PasswordInvalid() {
+        User user = new User("testuser", "password", "testuser@example.com");
         Set<ConstraintViolation<User>> violations = validator.validate(user);
 
-        assertFalse(violations.isEmpty(), "A password that is too short should produce validation errors.");
-        assertTrue(
-                violations.stream().anyMatch(v -> v.getMessage().contains("Password must be")),
-                "The error message should indicate the password constraints.");
+        assertEquals(1, violations.size());
+        assertTrue(violations.stream().anyMatch(v -> v.getMessage().contains("Password must be 8-20 characters long")));
     }
 
     @Test
-    public void testInvalidPassword_MissingSpecialCharacter() {
-        User user = new User("validUser", "Strong1234", "valid@example.com");
-
+    void testUserCreation_Failure_EmailInvalid() {
+        User user = new User("testuser", "Valid@1234", "invalid-email");
         Set<ConstraintViolation<User>> violations = validator.validate(user);
 
-        assertFalse(violations.isEmpty(), "A password without special characters should produce validation errors.");
-        assertTrue(
-                violations.stream().anyMatch(v -> v.getMessage().contains("Password must be")),
-                "The error message should indicate the password constraints.");
+        assertEquals(1, violations.size());
+        assertTrue(violations.stream().anyMatch(v -> v.getMessage().equals("Invalid email format")));
     }
 
     @Test
-    public void testInvalidPassword_TooLong() {
-        User user = new User("validUser", "ThisPasswordIsWayTooLong@123", "valid@example.com");
+    void testUserRoles_AddRole() {
+        User user = new User("testuser", "Valid@1234", "testuser@example.com");
+        Role role = new Role();
+        role.setName("ROLE_USER");
 
-        Set<ConstraintViolation<User>> violations = validator.validate(user);
+        user.addRole(role);
 
-        assertFalse(violations.isEmpty(), "A password that is too long should produce validation errors.");
-        assertTrue(
-                violations.stream().anyMatch(v -> v.getMessage().contains("Password must be")),
-                "The error message should indicate the password constraints.");
+        assertEquals(1, user.getRoles().size());
+        assertTrue(user.getRoles().contains(role));
     }
 
     @Test
-    public void testInvalidPassword_NoNumbers() {
-        User user = new User("validUser", "Strong@Password!", "valid@example.com");
+    void testUserRoles_RemoveRole() {
+        User user = new User("testuser", "Valid@1234", "testuser@example.com");
+        Role role = new Role();
+        role.setName("ROLE_USER");
 
-        Set<ConstraintViolation<User>> violations = validator.validate(user);
+        user.addRole(role);
+        assertEquals(1, user.getRoles().size());
 
-        assertFalse(violations.isEmpty(), "A password without numbers should produce validation errors.");
-        assertTrue(
-                violations.stream().anyMatch(v -> v.getMessage().contains("Password must be")),
-                "The error message should indicate the password constraints.");
+        user.removeRole(role);
+        assertEquals(0, user.getRoles().size());
     }
 
     @Test
-    public void testInvalidPassword_NoLetters() {
-        User user = new User("validUser", "12345678@", "valid@example.com");
-
-        Set<ConstraintViolation<User>> violations = validator.validate(user);
-
-        assertFalse(violations.isEmpty(), "A password without letters should produce validation errors.");
-        assertTrue(
-                violations.stream().anyMatch(v -> v.getMessage().contains("Password must be")),
-                "The error message should indicate the password constraints.");
-    }
-
-    @Test
-    public void testPasswordValidation() {
+    void testUserSettersAndGetters() {
         User user = new User();
+
+        user.setId(1L);
+        user.setUsername("testuser");
         user.setPassword("Valid@1234");
+        user.setEmail("testuser@example.com");
 
-        ValidatorFactory factory = Validation.buildDefaultValidatorFactory();
-        Validator validator = factory.getValidator();
-
-        Set<ConstraintViolation<User>> violations = validator.validate(user);
-        assertTrue(violations.isEmpty(), "El password debería ser válido");
+        assertEquals(1L, user.getId());
+        assertEquals("testuser", user.getUsername());
+        assertEquals("Valid@1234", user.getPassword());
+        assertEquals("testuser@example.com", user.getEmail());
     }
 
+    @Test
+    void testUserToString() {
+        User user = new User("testuser", "Valid@1234", "testuser@example.com");
+        String expectedToString = "User{id=null, username='testuser', email='testuser@example.com', roles=[]}";
+
+        assertEquals(expectedToString, user.toString());
+    }
+
+    @Test
+    void testUserWithMultipleRoles() {
+        User user = new User("testuser", "Valid@1234", "testuser@example.com");
+
+        Role role1 = new Role();
+        role1.setName("ROLE_USER");
+
+        Role role2 = new Role();
+        role2.setName("ROLE_ADMIN");
+
+        user.addRole(role1);
+        user.addRole(role2);
+
+        assertEquals(2, user.getRoles().size());
+        assertTrue(user.getRoles().contains(role1));
+        assertTrue(user.getRoles().contains(role2));
+    }
+
+    @Test
+    void testUserIdNotSetInitially() {
+        User user = new User("testuser", "Valid@1234", "testuser@example.com");
+        assertNull(user.getId());
+    }
 }

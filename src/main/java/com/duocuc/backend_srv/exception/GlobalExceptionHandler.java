@@ -17,11 +17,17 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    /**
+     * Handles validation exceptions thrown by Bean Validation (e.g., @Valid, @Pattern).
+     *
+     * @param ex the ConstraintViolationException
+     * @return a structured response with validation error details
+     */
     @ExceptionHandler(ConstraintViolationException.class)
-    public ResponseEntity<?> handleConstraintViolationException(ConstraintViolationException ex) {
+    public ResponseEntity<Map<String, Object>> handleConstraintViolationException(ConstraintViolationException ex) {
         Map<String, String> errors = new HashMap<>();
         for (ConstraintViolation<?> violation : ex.getConstraintViolations()) {
-            String fieldName = violation.getPropertyPath().toString();
+            String fieldName = violation.getPropertyPath().toString(); // Full path, refine if needed
             String errorMessage = violation.getMessage();
             errors.put(fieldName, errorMessage);
         }
@@ -31,8 +37,14 @@ public class GlobalExceptionHandler {
         ));
     }
 
+    /**
+     * Handles all uncaught exceptions globally to ensure a consistent error response.
+     *
+     * @param ex the Exception
+     * @return a structured response with the error message
+     */
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<?> handleGlobalException(Exception ex) {
+    public ResponseEntity<Map<String, Object>> handleGlobalException(Exception ex) {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
             "error", "Unexpected error occurred",
             "message", ex.getMessage()
