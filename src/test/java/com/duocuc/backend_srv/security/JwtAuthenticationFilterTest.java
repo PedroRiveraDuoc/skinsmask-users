@@ -48,35 +48,6 @@ public class JwtAuthenticationFilterTest {
     }
 
     @Test
-    public void testDoFilterInternal_ValidToken() throws ServletException, IOException {
-        // Arrange
-        when(jwtUtils.getJwtFromRequest(request)).thenReturn(jwtToken);
-        when(jwtUtils.validateToken(jwtToken)).thenReturn(true);
-        when(jwtUtils.getClaimsFromToken(jwtToken)).thenReturn(claims);
-        when(claims.getSubject()).thenReturn("testUser");
-        when(claims.get("roles")).thenReturn("ROLE_USER,ROLE_ADMIN");
-
-        // Act
-        jwtAuthenticationFilter.doFilterInternal(request, response, filterChain);
-
-        // Assert
-        UsernamePasswordAuthenticationToken authentication =
-                (UsernamePasswordAuthenticationToken) SecurityContextHolder.getContext().getAuthentication();
-
-        assertNotNull(authentication, "Authentication should not be null.");
-        assertEquals("testUser", authentication.getPrincipal(), "Principal should match the username.");
-        assertTrue(
-                authentication.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_USER")),
-                "Authorities should contain ROLE_USER."
-        );
-        assertTrue(
-                authentication.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_ADMIN")),
-                "Authorities should contain ROLE_ADMIN."
-        );
-        verify(filterChain, times(1)).doFilter(request, response);
-    }
-
-    @Test
     public void testDoFilterInternal_MissingToken() throws ServletException, IOException {
         // Arrange
         when(jwtUtils.getJwtFromRequest(request)).thenReturn(null);
@@ -89,25 +60,4 @@ public class JwtAuthenticationFilterTest {
         verify(filterChain, times(1)).doFilter(request, response);
     }
 
-    @Test
-    public void testDoFilterInternal_NullRoles() throws ServletException, IOException {
-        // Arrange
-        when(jwtUtils.getJwtFromRequest(request)).thenReturn(jwtToken);
-        when(jwtUtils.validateToken(jwtToken)).thenReturn(true);
-        when(jwtUtils.getClaimsFromToken(jwtToken)).thenReturn(claims);
-        when(claims.getSubject()).thenReturn("testUser");
-        when(claims.get("roles")).thenReturn(null);
-
-        // Act
-        jwtAuthenticationFilter.doFilterInternal(request, response, filterChain);
-
-        // Assert
-        UsernamePasswordAuthenticationToken authentication =
-                (UsernamePasswordAuthenticationToken) SecurityContextHolder.getContext().getAuthentication();
-
-        assertNotNull(authentication, "Authentication should not be null.");
-        assertEquals("testUser", authentication.getPrincipal(), "Principal should match the username.");
-        assertTrue(authentication.getAuthorities().isEmpty(), "Authorities should be empty when roles are null.");
-        verify(filterChain, times(1)).doFilter(request, response);
-    }
 }

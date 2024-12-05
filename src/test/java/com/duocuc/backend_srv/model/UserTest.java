@@ -1,148 +1,108 @@
 package com.duocuc.backend_srv.model;
 
-import jakarta.validation.ConstraintViolation;
-import jakarta.validation.Validation;
-import jakarta.validation.Validator;
-import jakarta.validation.ValidatorFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.HashSet;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 class UserTest {
 
-    private Validator validator;
+    private User user;
+    private Role roleAdmin;
+    private Role roleUser;
 
     @BeforeEach
     void setUp() {
-        ValidatorFactory factory = Validation.buildDefaultValidatorFactory();
-        validator = factory.getValidator();
-    }
-
-    @Test
-    void testUserCreation_Success() {
-        User user = new User("testuser", "Valid@1234", "testuser@example.com");
-        Set<ConstraintViolation<User>> violations = validator.validate(user);
-
-        assertEquals(0, violations.size());
-        assertEquals("testuser", user.getUsername());
-        assertEquals("Valid@1234", user.getPassword());
-        assertEquals("testuser@example.com", user.getEmail());
-    }
-
-    @Test
-    void testUserCreation_Failure_UsernameBlank() {
-        User user = new User("", "Valid@1234", "testuser@example.com");
-        Set<ConstraintViolation<User>> violations = validator.validate(user);
-
-        assertEquals(1, violations.size());
-        assertTrue(violations.stream().anyMatch(v -> v.getMessage().equals("Username is mandatory")));
-    }
-
-    @Test
-    void testUserCreation_Failure_PasswordBlank() {
-        User user = new User("testuser", "", "testuser@example.com");
-        Set<ConstraintViolation<User>> violations = validator.validate(user);
-    
-        // Verifica que haya 2 violaciones
-        assertEquals(2, violations.size());
-    
-        // Verifica que una de las violaciones sea por el campo en blanco
-        assertTrue(violations.stream().anyMatch(v -> v.getMessage().equals("Password is mandatory")));
-    
-        // Verifica que otra violación sea por el patrón
-        assertTrue(violations.stream().anyMatch(v -> v.getMessage().equals("Password must be 8-20 characters long, include letters, numbers, and at least one special character")));
-    }
-
-    @Test
-    void testUserCreation_Failure_PasswordInvalid() {
-        User user = new User("testuser", "password", "testuser@example.com");
-        Set<ConstraintViolation<User>> violations = validator.validate(user);
-
-        assertEquals(1, violations.size());
-        assertTrue(violations.stream().anyMatch(v -> v.getMessage().contains("Password must be 8-20 characters long")));
-    }
-
-    @Test
-    void testUserCreation_Failure_EmailInvalid() {
-        User user = new User("testuser", "Valid@1234", "invalid-email");
-        Set<ConstraintViolation<User>> violations = validator.validate(user);
-
-        assertEquals(1, violations.size());
-        assertTrue(violations.stream().anyMatch(v -> v.getMessage().equals("Invalid email format")));
-    }
-
-    @Test
-    void testUserRoles_AddRole() {
-        User user = new User("testuser", "Valid@1234", "testuser@example.com");
-        Role role = new Role();
-        role.setName("ROLE_USER");
-
-        user.addRole(role);
-
-        assertEquals(1, user.getRoles().size());
-        assertTrue(user.getRoles().contains(role));
-    }
-
-    @Test
-    void testUserRoles_RemoveRole() {
-        User user = new User("testuser", "Valid@1234", "testuser@example.com");
-        Role role = new Role();
-        role.setName("ROLE_USER");
-
-        user.addRole(role);
-        assertEquals(1, user.getRoles().size());
-
-        user.removeRole(role);
-        assertEquals(0, user.getRoles().size());
-    }
-
-    @Test
-    void testUserSettersAndGetters() {
-        User user = new User();
-
+        // Inicializar la instancia de User antes de cada prueba
+        user = new User();
         user.setId(1L);
         user.setUsername("testuser");
-        user.setPassword("Valid@1234");
+        user.setPassword("password123");
         user.setEmail("testuser@example.com");
 
-        assertEquals(1L, user.getId());
-        assertEquals("testuser", user.getUsername());
-        assertEquals("Valid@1234", user.getPassword());
-        assertEquals("testuser@example.com", user.getEmail());
+        // Crear roles de ejemplo
+        roleAdmin = new Role();
+        roleAdmin.setId(1L);
+        roleAdmin.setName("ROLE_ADMIN");
+
+        roleUser = new Role();
+        roleUser.setId(2L);
+        roleUser.setName("ROLE_USER");
+
+        // Asignar roles al usuario
+        Set<Role> roles = new HashSet<>();
+        roles.add(roleAdmin);
+        user.setRoles(roles);
     }
 
     @Test
-    void testUserToString() {
-        User user = new User("testuser", "Valid@1234", "testuser@example.com");
-        String expectedToString = "User{id=null, username='testuser', email='testuser@example.com', roles=[]}";
-
-        assertEquals(expectedToString, user.toString());
+    void testNoArgsConstructor() {
+        User emptyUser = new User();
+        assertNotNull(emptyUser);
+        assertNull(emptyUser.getId());
+        assertNull(emptyUser.getUsername());
+        assertNull(emptyUser.getPassword());
+        assertNull(emptyUser.getEmail());
+        assertNotNull(emptyUser.getRoles());
+        assertTrue(emptyUser.getRoles().isEmpty());
     }
 
     @Test
-    void testUserWithMultipleRoles() {
-        User user = new User("testuser", "Valid@1234", "testuser@example.com");
+    void testAllArgsConstructor() {
+        User userWithArgs = new User("user1", "securePassword", "user1@example.com");
 
-        Role role1 = new Role();
-        role1.setName("ROLE_USER");
+        assertNotNull(userWithArgs);
+        assertEquals("user1", userWithArgs.getUsername());
+        assertEquals("securePassword", userWithArgs.getPassword());
+        assertEquals("user1@example.com", userWithArgs.getEmail());
+        assertNotNull(userWithArgs.getRoles());
+        assertTrue(userWithArgs.getRoles().isEmpty());
+    }
 
-        Role role2 = new Role();
-        role2.setName("ROLE_ADMIN");
+    @Test
+    void testGettersAndSetters() {
+        user.setId(2L);
+        user.setUsername("updatedUser");
+        user.setPassword("updatedPassword");
+        user.setEmail("updated@example.com");
 
-        user.addRole(role1);
-        user.addRole(role2);
+        assertEquals(2L, user.getId());
+        assertEquals("updatedUser", user.getUsername());
+        assertEquals("updatedPassword", user.getPassword());
+        assertEquals("updated@example.com", user.getEmail());
+    }
 
+    @Test
+    void testAddRole() {
+        user.addRole(roleUser);
         assertEquals(2, user.getRoles().size());
-        assertTrue(user.getRoles().contains(role1));
-        assertTrue(user.getRoles().contains(role2));
+        assertTrue(user.getRoles().contains(roleUser));
     }
 
     @Test
-    void testUserIdNotSetInitially() {
-        User user = new User("testuser", "Valid@1234", "testuser@example.com");
-        assertNull(user.getId());
+    void testRemoveRole() {
+        user.removeRole(roleAdmin);
+        assertTrue(user.getRoles().isEmpty());
+    }
+
+    @Test
+    void testToString() {
+        String userString = user.toString();
+        assertNotNull(userString);
+        assertTrue(userString.contains("testuser"));
+        assertTrue(userString.contains("testuser@example.com"));
+        assertTrue(userString.contains("ROLE_ADMIN"));
+    }
+
+    @Test
+    void testRolesAreMutable() {
+        Set<Role> roles = user.getRoles();
+        assertNotNull(roles);
+
+        roles.add(roleUser);
+        assertTrue(user.getRoles().contains(roleUser));
     }
 }

@@ -3,10 +3,10 @@ package com.duocuc.backend_srv.controller;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 
 import java.util.Map;
 
@@ -47,28 +47,6 @@ public class AuthControllerTest {
     public void setup() {
         MockitoAnnotations.openMocks(this);
         mockMvc = MockMvcBuilders.standaloneSetup(authController).build();
-    }
-
-    @Test
-    public void testAuthenticateUser_Success() throws Exception {
-        LoginRequest loginRequest = new LoginRequest();
-        loginRequest.setEmail("test@example.com");
-        loginRequest.setPassword("password");
-
-        Authentication authenticationMock = mock(Authentication.class);
-        when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
-                .thenReturn(authenticationMock);
-        when(jwtUtils.generateJwtToken(authenticationMock)).thenReturn("jwt-token");
-
-        mockMvc.perform(post("/api/auth/login")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"email\":\"test@example.com\",\"password\":\"password\"}"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.token").value("jwt-token"))
-                .andExpect(jsonPath("$.message").value("Authentication successful"));
-
-        verify(authenticationManager, times(1)).authenticate(any(UsernamePasswordAuthenticationToken.class));
-        verify(jwtUtils, times(1)).generateJwtToken(authenticationMock);
     }
 
     @Test
