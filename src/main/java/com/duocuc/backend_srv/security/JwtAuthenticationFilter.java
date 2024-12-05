@@ -16,7 +16,6 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import com.duocuc.backend_srv.util.JwtUtils;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -36,19 +35,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String jwtToken = jwtUtils.getJwtFromRequest(request);
         if (jwtToken != null && jwtUtils.validateToken(jwtToken)) {
             Claims claims = jwtUtils.getClaimsFromToken(jwtToken);
-            String username = claims.getSubject();
-            System.out.println("Extracted username from JWT: " + username); 
 
-            // Obtener roles del JWT y manejar caso donde roles sea null
+            Long id = claims.get("id", Long.class);
+            String username = claims.get("username", String.class);
+            String email = claims.getSubject();
             String roles = (String) claims.get("roles");
-            List<SimpleGrantedAuthority> authorities = new ArrayList<>();
 
-            if (roles != null) {
-                authorities = List.of(roles.split(",")).stream()
-                        .map(SimpleGrantedAuthority::new)
-                        .collect(Collectors.toList());
-            }
+            // Asegurar que los roles tienen el prefijo ROLE_
+            List<SimpleGrantedAuthority> authorities = List.of(roles.split(",")).stream()
+                    .map(role -> new SimpleGrantedAuthority("ROLE_" + role))
+                    .collect(Collectors.toList());
 
+            // Usar el username como principal
             UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(
                     username, null, authorities);
             authenticationToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
@@ -58,5 +56,4 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         chain.doFilter(request, response);
     }
-
 }

@@ -7,25 +7,46 @@ import org.springframework.security.core.userdetails.UserDetails;
 import com.duocuc.backend_srv.model.User;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.stream.Collectors;
 
 public class UserPrincipal implements UserDetails {
   private Long id;
   private String username;
+  private String email;
   private String password;
   private Collection<? extends GrantedAuthority> authorities;
 
-  public UserPrincipal(User user) {
-    this.id = user.getId();
-    this.username = user.getUsername();
-    this.password = user.getPassword();
-    this.authorities = user.getRoles().stream()
-        .map(role -> new SimpleGrantedAuthority(role.getName()))
-        .collect(Collectors.toList());
+  // Constructor completo
+  public UserPrincipal(Long id, String username, String email, String password,
+      Collection<? extends GrantedAuthority> authorities) {
+    this.id = id;
+    this.username = username;
+    this.email = email;
+    this.password = password;
+    this.authorities = authorities;
   }
 
+  // Constructor a partir de un User
   public static UserPrincipal create(User user) {
-    return new UserPrincipal(user);
+    List<GrantedAuthority> authorities = user.getRoles().stream()
+        .map(role -> new SimpleGrantedAuthority(role.getName()))
+        .collect(Collectors.toList());
+
+    return new UserPrincipal(
+        user.getId(),
+        user.getUsername(),
+        user.getEmail(),
+        user.getPassword(),
+        authorities);
+  }
+
+  public Long getId() {
+    return id;
+  }
+
+  public String getEmail() {
+    return email;
   }
 
   @Override
@@ -61,5 +82,20 @@ public class UserPrincipal implements UserDetails {
   @Override
   public boolean isEnabled() {
     return true;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o)
+      return true;
+    if (o == null || getClass() != o.getClass())
+      return false;
+    UserPrincipal that = (UserPrincipal) o;
+    return id.equals(that.id);
+  }
+
+  @Override
+  public int hashCode() {
+    return id.hashCode();
   }
 }

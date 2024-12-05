@@ -2,6 +2,8 @@ package com.duocuc.backend_srv.controller;
 
 import org.junit.jupiter.api.Test;
 
+import com.duocuc.backend_srv.dto.AuthResponse;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 public class AuthResponseTest {

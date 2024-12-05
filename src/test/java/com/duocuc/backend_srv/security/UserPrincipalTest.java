@@ -5,70 +5,125 @@ import com.duocuc.backend_srv.model.User;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class UserPrincipalTest {
+class UserPrincipalTest {
 
     private User user;
+    private UserPrincipal userPrincipal;
 
     @BeforeEach
-    public void setUp() {
-        user = new User("testUser", "testPassword", "test@example.com");
-        Role role = new Role("Admin", "ROLE_ADMIN");
-        user.addRole(role);
+    void setUp() {
+        // Create roles
+        Role roleUser = new Role();
+        roleUser.setId(1L);
+        roleUser.setName("ROLE_USER");
+
+        Role roleAdmin = new Role();
+        roleAdmin.setId(2L);
+        roleAdmin.setName("ROLE_ADMIN");
+
+        // Create user
+        user = new User();
+        user.setId(123L);
+        user.setUsername("testuser");
+        user.setEmail("testuser@example.com");
+        user.setPassword("password123");
+        user.setRoles(Set.of(roleUser, roleAdmin));
+
+        // Create UserPrincipal from user
+        userPrincipal = UserPrincipal.create(user);
     }
 
     @Test
-    public void testUserPrincipalConstructor() {
-        UserPrincipal userPrincipal = new UserPrincipal(user);
+    void testCreateFromUser() {
+        UserPrincipal createdUserPrincipal = UserPrincipal.create(user);
 
-        assertEquals(user.getUsername(), userPrincipal.getUsername(), "UserPrincipal username should match User username.");
-        assertEquals(user.getPassword(), userPrincipal.getPassword(), "UserPrincipal password should match User password.");
+        assertEquals(user.getId(), createdUserPrincipal.getId());
+        assertEquals(user.getUsername(), createdUserPrincipal.getUsername());
+        assertEquals(user.getEmail(), createdUserPrincipal.getEmail());
+        assertEquals(user.getPassword(), createdUserPrincipal.getPassword());
 
+        List<String> expectedAuthorities = Arrays.asList("ROLE_USER", "ROLE_ADMIN");
+        List<String> actualAuthorities = createdUserPrincipal.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .toList();
+
+        assertTrue(actualAuthorities.containsAll(expectedAuthorities));
+    }
+
+    @Test
+    void testGetId() {
+        assertEquals(123L, userPrincipal.getId());
+    }
+
+    @Test
+    void testGetUsername() {
+        assertEquals("testuser", userPrincipal.getUsername());
+    }
+
+    @Test
+    void testGetEmail() {
+        assertEquals("testuser@example.com", userPrincipal.getEmail());
+    }
+
+    @Test
+    void testGetPassword() {
+        assertEquals("password123", userPrincipal.getPassword());
+    }
+
+    @Test
+    void testGetAuthorities() {
         Collection<? extends GrantedAuthority> authorities = userPrincipal.getAuthorities();
-        assertNotNull(authorities, "Authorities should not be null.");
-        assertEquals(1, authorities.size(), "Authorities size should match the number of roles.");
 
-        GrantedAuthority authority = authorities.iterator().next();
-        assertTrue(authority instanceof SimpleGrantedAuthority, "Authority should be an instance of SimpleGrantedAuthority.");
-        assertEquals("Admin", authority.getAuthority(), "Authority name should match the role name.");
+        assertEquals(2, authorities.size());
+        assertTrue(authorities.stream().anyMatch(auth -> auth.getAuthority().equals("ROLE_USER")));
+        assertTrue(authorities.stream().anyMatch(auth -> auth.getAuthority().equals("ROLE_ADMIN")));
     }
 
     @Test
-    public void testCreateMethod() {
-        UserPrincipal userPrincipal = UserPrincipal.create(user);
-
-        assertNotNull(userPrincipal, "UserPrincipal should not be null.");
-        assertEquals(user.getUsername(), userPrincipal.getUsername(), "UserPrincipal username should match User username.");
-        assertEquals(user.getPassword(), userPrincipal.getPassword(), "UserPrincipal password should match User password.");
+    void testIsAccountNonExpired() {
+        assertTrue(userPrincipal.isAccountNonExpired());
     }
 
     @Test
-    public void testIsAccountNonExpired() {
-        UserPrincipal userPrincipal = new UserPrincipal(user);
-        assertTrue(userPrincipal.isAccountNonExpired(), "Account should be non-expired.");
+    void testIsAccountNonLocked() {
+        assertTrue(userPrincipal.isAccountNonLocked());
     }
 
     @Test
-    public void testIsAccountNonLocked() {
-        UserPrincipal userPrincipal = new UserPrincipal(user);
-        assertTrue(userPrincipal.isAccountNonLocked(), "Account should be non-locked.");
+    void testIsCredentialsNonExpired() {
+        assertTrue(userPrincipal.isCredentialsNonExpired());
     }
 
     @Test
-    public void testIsCredentialsNonExpired() {
-        UserPrincipal userPrincipal = new UserPrincipal(user);
-        assertTrue(userPrincipal.isCredentialsNonExpired(), "Credentials should be non-expired.");
+    void testIsEnabled() {
+        assertTrue(userPrincipal.isEnabled());
     }
 
     @Test
-    public void testIsEnabled() {
-        UserPrincipal userPrincipal = new UserPrincipal(user);
-        assertTrue(userPrincipal.isEnabled(), "Account should be enabled.");
+    void testEqualsAndHashCode() {
+        UserPrincipal sameUserPrincipal = UserPrincipal.create(user);
+
+        assertEquals(userPrincipal, sameUserPrincipal);
+        assertEquals(userPrincipal.hashCode(), sameUserPrincipal.hashCode());
+
+        User differentUser = new User();
+        differentUser.setId(456L);
+        differentUser.setUsername("differentuser");
+        differentUser.setEmail("different@example.com");
+        differentUser.setPassword("password456");
+        differentUser.setRoles(Set.of());
+
+        UserPrincipal differentUserPrincipal = UserPrincipal.create(differentUser);
+
+        assertNotEquals(userPrincipal, differentUserPrincipal);
+        assertNotEquals(userPrincipal.hashCode(), differentUserPrincipal.hashCode());
     }
 }

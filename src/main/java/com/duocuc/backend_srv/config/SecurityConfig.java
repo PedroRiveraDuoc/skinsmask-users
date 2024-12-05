@@ -44,6 +44,8 @@ public class SecurityConfig {
         .authorizeHttpRequests(auth -> auth
             .requestMatchers("/api/auth/**").permitAll() // Permitir acceso a las rutas de autenticación
             .requestMatchers(HttpMethod.PUT, "/api/users/**").authenticated() // Asegurar que PUT esté permitido
+            .requestMatchers(HttpMethod.DELETE, "/api/users/**").hasRole("ADMIN") // Asegurar que DELETE esté permitido
+                                                                                  // solo para ADMIN
             .anyRequest().authenticated() // Requerir autenticación para el resto de las rutas
         )
         .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));

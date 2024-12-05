@@ -5,15 +5,18 @@ import io.jsonwebtoken.security.Keys;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Component;
 
 import com.duocuc.backend_srv.config.JwtConfig;
+import com.duocuc.backend_srv.security.UserPrincipal;
 
 import jakarta.servlet.http.HttpServletRequest;
 
 import java.security.Key;
 import java.util.Base64;
 import java.util.Date;
+import java.util.stream.Collectors;
 
 @Component
 public class JwtUtils {
@@ -50,19 +53,20 @@ public class JwtUtils {
      * @return The generated JWT token.
      */
     public String generateJwtToken(Authentication authentication) {
-        String email = authentication.getName(); // Now using email
-        String roles = authentication.getAuthorities().stream()
-            .map(grantedAuthority -> grantedAuthority.getAuthority())
-            .reduce((a, b) -> a + "," + b).orElse("");
+    UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
 
-        return Jwts.builder()
-            .setSubject(email) // Use email as the subject
-            .claim("roles", roles) // Add roles as a claim
-            .setIssuedAt(new Date())
-            .setExpiration(new Date((new Date()).getTime() + jwtConfig.getExpirationMs()))
-            .signWith(getSigningKey(), SignatureAlgorithm.HS512)
-            .compact();
-    }
+    return Jwts.builder()
+        .setSubject(userPrincipal.getEmail()) // Email como subject
+        .claim("id", userPrincipal.getId()) // Agregar ID
+        .claim("username", userPrincipal.getUsername()) // Agregar username
+        .claim("roles", userPrincipal.getAuthorities().stream()
+            .map(GrantedAuthority::getAuthority)
+            .collect(Collectors.joining(",")))
+        .setIssuedAt(new Date())
+        .setExpiration(new Date((new Date()).getTime() + jwtConfig.getExpirationMs()))
+        .signWith(getSigningKey(), SignatureAlgorithm.HS512)
+        .compact();
+}
 
     /**
      * Validates the JWT token.

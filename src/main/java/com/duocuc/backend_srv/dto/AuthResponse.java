@@ -1,4 +1,4 @@
-package com.duocuc.backend_srv.controller;
+package com.duocuc.backend_srv.dto;
 
 /**
  * AuthResponse represents the structure of the response returned after user authentication.

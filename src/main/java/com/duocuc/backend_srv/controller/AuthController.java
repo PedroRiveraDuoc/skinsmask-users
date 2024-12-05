@@ -13,6 +13,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 
+import com.duocuc.backend_srv.dto.AuthResponse;
 import com.duocuc.backend_srv.dto.LoginRequest;
 import com.duocuc.backend_srv.dto.SignUpRequest;
 import com.duocuc.backend_srv.service.UserService;
@@ -21,6 +22,8 @@ import com.duocuc.backend_srv.util.JwtUtils;
 import jakarta.validation.Valid;
 
 import com.duocuc.backend_srv.model.User;
+import com.duocuc.backend_srv.security.UserPrincipal;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,7 +53,14 @@ public class AuthController {
         SecurityContextHolder.getContext().setAuthentication(authentication);
         String jwt = jwtUtils.generateJwtToken(authentication);
 
-        return ResponseEntity.ok(new AuthResponse(jwt, "Authentication successful"));
+        UserPrincipal userDetails = (UserPrincipal) authentication.getPrincipal();
+
+        return ResponseEntity.ok(new AuthResponse(
+                jwt,
+                userDetails.getId(),
+                userDetails.getUsername(),
+                userDetails.getEmail(),
+                "Authentication successful"));
     }
 
     @PostMapping("/signup")
