@@ -134,7 +134,9 @@ public class JwtUtils {
      */
     public String getAuthenticatedUsername(String token) {
         Claims claims = getClaimsFromToken(token);
-        return claims.getSubject(); // Retrieves the username from the claims
+        String username = claims.getSubject(); // Should be the email
+        logger.info("Extracted username (email) from token: {}", username);
+        return username;
     }
 
 }
