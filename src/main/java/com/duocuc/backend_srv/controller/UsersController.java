@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.*;
 import com.duocuc.backend_srv.dto.RoleDto;
 import com.duocuc.backend_srv.dto.SignUpRequest;
 import com.duocuc.backend_srv.dto.UserProfileDto;
+import com.duocuc.backend_srv.exception.UserNotFoundException;
 import com.duocuc.backend_srv.model.User;
 import com.duocuc.backend_srv.service.UserService;
 import com.duocuc.backend_srv.util.JwtUtils;
@@ -63,7 +64,8 @@ public class UsersController {
                         .map(role -> new RoleDto(role.getId(), role.getName()))
                         .collect(Collectors.toList());
 
-                UserProfileDto userProfile = new UserProfileDto(user.getId(), user.getUsername(), roles);
+                UserProfileDto userProfile = new UserProfileDto(user.getId(), user.getUsername(), user.getEmail(),
+                        user.getFirstName(), user.getLastName(), roles);
                 logger.info("User profile retrieved successfully for: {}", user.getUsername());
                 return ResponseEntity.ok(userProfile);
             } else {
@@ -89,16 +91,20 @@ public class UsersController {
         logger.info("PUT request received on /api/users/update");
 
         try {
-            String loggedInUsername = SecurityContextHolder.getContext().getAuthentication().getName();
-            logger.info("Authenticated user: {}", loggedInUsername);
+            String loggedInEmail = SecurityContextHolder.getContext().getAuthentication().getName();
+            logger.info("Authenticated user: {}", loggedInEmail);
 
-            userService.updateUser(loggedInUsername, updateRequest);
-            logger.info("User updated successfully: {}", loggedInUsername);
+            userService.updateUser(loggedInEmail, updateRequest);
+            logger.info("User updated successfully: {}", loggedInEmail);
             return ResponseEntity.ok(Map.of("message", "User updated successfully!"));
-        } catch (IllegalArgumentException e) {
-            logger.warn("Validation error during user update: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", e.getMessage()));
-        } catch (RuntimeException e) {
+        } catch (com.duocuc.backend_srv.exception.UsernameAlreadyExistsException
+                | com.duocuc.backend_srv.exception.EmailAlreadyExistsException ex) {
+            logger.warn("Validation error during user update: {}", ex.getMessage());
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", ex.getMessage()));
+        } catch (UserNotFoundException ex) {
+            logger.warn("User not found during update: {}", ex.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", ex.getMessage()));
+        } catch (Exception e) {
             logger.error("Unexpected error during user update: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", "Unexpected error: " + e.getMessage()));
@@ -112,7 +118,7 @@ public class UsersController {
      * @return Success or error message.
      */
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> deleteUser(@PathVariable Long id) {
         logger.info("DELETE request received on /api/users/{}", id);
 
@@ -120,6 +126,9 @@ public class UsersController {
             userService.deleteUser(id);
             logger.info("User deleted successfully. ID: {}", id);
             return ResponseEntity.ok(Map.of("message", "User deleted successfully!"));
+        } catch (UserNotFoundException ex) {
+            logger.warn("User not found for deletion. ID: {}, Error: {}", id, ex.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", ex.getMessage()));
         } catch (Exception e) {
             logger.error("Error deleting user. ID: {}, Error: {}", id, e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)

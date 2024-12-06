@@ -38,6 +38,39 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * Handles UserNotFoundException.
+     *
+     * @param ex the UserNotFoundException
+     * @return a structured response with error details
+     */
+    @ExceptionHandler(UserNotFoundException.class)
+    public ResponseEntity<Map<String, String>> handleUserNotFoundException(UserNotFoundException ex){
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", ex.getMessage()));
+    }
+
+    /**
+     * Handles UsernameAlreadyExistsException.
+     *
+     * @param ex the UsernameAlreadyExistsException
+     * @return a structured response with error details
+     */
+    @ExceptionHandler(UsernameAlreadyExistsException.class)
+    public ResponseEntity<Map<String, String>> handleUsernameAlreadyExistsException(UsernameAlreadyExistsException ex){
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", ex.getMessage()));
+    }
+
+    /**
+     * Handles EmailAlreadyExistsException.
+     *
+     * @param ex the EmailAlreadyExistsException
+     * @return a structured response with error details
+     */
+    @ExceptionHandler(EmailAlreadyExistsException.class)
+    public ResponseEntity<Map<String, String>> handleEmailAlreadyExistsException(EmailAlreadyExistsException ex){
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", ex.getMessage()));
+    }
+
+    /**
      * Handles all uncaught exceptions globally to ensure a consistent error response.
      *
      * @param ex the Exception

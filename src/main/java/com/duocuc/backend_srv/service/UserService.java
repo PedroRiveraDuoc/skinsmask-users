@@ -4,6 +4,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import com.duocuc.backend_srv.dto.SignUpRequest;
+import com.duocuc.backend_srv.exception.EmailAlreadyExistsException;
+import com.duocuc.backend_srv.exception.UserNotFoundException;
+import com.duocuc.backend_srv.exception.UsernameAlreadyExistsException;
 import com.duocuc.backend_srv.model.Role;
 import com.duocuc.backend_srv.model.User;
 import com.duocuc.backend_srv.repository.RoleRepository;
@@ -34,38 +37,54 @@ public class UserService {
   /**
    * Registers a new user with a default role.
    *
-   * @param username The username of the new user.
-   * @param password The password of the new user.
-   * @param email    The email of the new user.
+   * @param username  The username of the new user.
+   * @param password  The password of the new user.
+   * @param email     The email of the new user.
+   * @param firstName The first name of the new user.
+   * @param lastName  The last name of the new user.
    * @return The saved User object.
    */
-  public User registerUser(String username, String password, String email) {
-    User user = new User(username, password, email);
-    user.setUsername(username);
-    user.setEmail(email);
+  public User registerUser(SignUpRequest signUpRequest) {
+    // Crear un nuevo usuario
+    User user = new User(
+        signUpRequest.getUsername(),
+        passwordEncoder.encode(signUpRequest.getPassword()),
+        signUpRequest.getEmail(),
+        signUpRequest.getFirstName(),
+        signUpRequest.getLastName());
 
-    Role userRole = roleRepository.findByCode("ROLE_USER")
-        .orElseThrow(() -> new RuntimeException("Error: Role not found."));
-
-    user.setPassword(passwordEncoder.encode(password)); // Mover esta línea después de obtener el rol
-
+    // Obtener roles enviados en la solicitud
+    Set<String> strRoles = signUpRequest.getRoles();
     Set<Role> roles = new HashSet<>();
-    roles.add(userRole);
-    user.setRoles(roles);
 
-    return userRepository.save(user);
-}
+    if (strRoles == null || strRoles.isEmpty()) {
+      // Asignar el rol predeterminado (ROLE_USER) si no se especificaron roles
+      Role userRole = roleRepository.findByCode("ROLE_USER")
+          .orElseThrow(() -> new RuntimeException("Error: Role USER not found."));
+      roles.add(userRole);
+    } else {
+      // Verificar y asignar los roles enviados
+      for (String role : strRoles) {
+        Role foundRole = roleRepository.findByCode(role)
+            .orElseThrow(() -> new RuntimeException("Error: Role " + role + " not found."));
+        roles.add(foundRole);
+      }
+    }
+
+    user.setRoles(roles); // Asignar los roles al usuario
+    return userRepository.save(user); // Guardar el usuario en la base de datos
+  }
 
   /**
    * Finds a user by their username.
    *
    * @param username The username to search for.
    * @return The found User object.
-   * @throws IllegalArgumentException if the user is not found.
+   * @throws UsernameAlreadyExistsException if the user is not found.
    */
   public User findByUsername(String username) {
     return userRepository.findByUsername(username)
-        .orElseThrow(() -> new IllegalArgumentException("User not found with username: " + username));
+        .orElseThrow(() -> new UsernameAlreadyExistsException("User not found with username: " + username));
   }
 
   /**
@@ -91,24 +110,26 @@ public class UserService {
   /**
    * Updates an authenticated user's profile.
    *
-   * @param loggedInUsername The username of the authenticated user.
-   * @param updateRequest    The user details to update.
-   * @throws IllegalArgumentException if validation fails.
+   * @param loggedInEmail The email of the authenticated user.
+   * @param updateRequest The user details to update.
+   * @throws UsernameAlreadyExistsException if the username is already taken.
+   * @throws EmailAlreadyExistsException    if the email is already registered.
+   * @throws UserNotFoundException          if the user is not found.
    */
-  public void updateUser(String loggedInUsername, SignUpRequest updateRequest) {
-    User user = userRepository.findByEmail(loggedInUsername)
-        .orElseThrow(() -> new RuntimeException("User not found."));
+  public void updateUser(String loggedInEmail, SignUpRequest updateRequest) {
+    User user = userRepository.findByEmail(loggedInEmail)
+        .orElseThrow(() -> new UserNotFoundException("User not found."));
 
     if (updateRequest.getUsername() != null &&
         !updateRequest.getUsername().equals(user.getUsername()) &&
         userRepository.existsByUsername(updateRequest.getUsername())) {
-      throw new IllegalArgumentException("Username is already taken.");
+      throw new UsernameAlreadyExistsException("Username is already taken.");
     }
 
     if (updateRequest.getEmail() != null &&
         !updateRequest.getEmail().equals(user.getEmail()) &&
         userRepository.existsByEmail(updateRequest.getEmail())) {
-      throw new IllegalArgumentException("Email is already registered.");
+      throw new EmailAlreadyExistsException("Email is already registered.");
     }
 
     if (updateRequest.getUsername() != null) {
@@ -117,6 +138,14 @@ public class UserService {
 
     if (updateRequest.getEmail() != null) {
       user.setEmail(updateRequest.getEmail());
+    }
+
+    if (updateRequest.getFirstName() != null) {
+      user.setFirstName(updateRequest.getFirstName());
+    }
+
+    if (updateRequest.getLastName() != null) {
+      user.setLastName(updateRequest.getLastName());
     }
 
     if (updateRequest.getPassword() != null && !updateRequest.getPassword().isEmpty()) {
@@ -130,10 +159,11 @@ public class UserService {
    * Deletes a user by their ID.
    *
    * @param id The ID of the user to delete.
+   * @throws UserNotFoundException if the user is not found.
    */
   public void deleteUser(Long id) {
     User user = userRepository.findById(id)
-        .orElseThrow(() -> new RuntimeException("User not found."));
+        .orElseThrow(() -> new UserNotFoundException("User not found."));
     userRepository.delete(user);
   }
 

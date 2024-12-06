@@ -2,6 +2,7 @@ package com.duocuc.backend_srv.controller;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -16,13 +17,15 @@ import org.springframework.web.bind.annotation.*;
 import com.duocuc.backend_srv.dto.AuthResponse;
 import com.duocuc.backend_srv.dto.LoginRequest;
 import com.duocuc.backend_srv.dto.SignUpRequest;
+import com.duocuc.backend_srv.exception.EmailAlreadyExistsException;
+import com.duocuc.backend_srv.exception.UsernameAlreadyExistsException;
+import com.duocuc.backend_srv.model.Role;
+import com.duocuc.backend_srv.model.User;
+import com.duocuc.backend_srv.security.UserPrincipal;
 import com.duocuc.backend_srv.service.UserService;
 import com.duocuc.backend_srv.util.JwtUtils;
 
 import jakarta.validation.Valid;
-
-import com.duocuc.backend_srv.model.User;
-import com.duocuc.backend_srv.security.UserPrincipal;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -60,6 +63,8 @@ public class AuthController {
                 userDetails.getId(),
                 userDetails.getUsername(),
                 userDetails.getEmail(),
+                userDetails.getFirstName(),
+                userDetails.getLastName(),
                 "Authentication successful"));
     }
 
@@ -67,23 +72,23 @@ public class AuthController {
     public ResponseEntity<?> registerUser(@Valid @RequestBody SignUpRequest signUpRequest) {
         try {
             if (userService.existsByUsername(signUpRequest.getUsername())) {
-                return ResponseEntity.badRequest().body(Map.of("error", "Username is already taken"));
+                throw new UsernameAlreadyExistsException("Username is already taken");
             }
 
             if (userService.existsByEmail(signUpRequest.getEmail())) {
-                return ResponseEntity.badRequest().body(Map.of("error", "Email is already registered"));
+                throw new EmailAlreadyExistsException("Email is already registered");
             }
 
-            User user = userService.registerUser(
-                    signUpRequest.getUsername(),
-                    signUpRequest.getPassword(),
-                    signUpRequest.getEmail());
+            // Registrar usuario con los roles enviados
+            User user = userService.registerUser(signUpRequest);
 
-            // Aquí utilizamos los datos del usuario registrado
             return ResponseEntity.ok(Map.of(
                     "id", user.getId(),
                     "username", user.getUsername(),
                     "email", user.getEmail(),
+                    "firstName", user.getFirstName(),
+                    "lastName", user.getLastName(),
+                    "roles", user.getRoles().stream().map(Role::getCode).collect(Collectors.toSet()),
                     "message", "User registered successfully!"));
         } catch (Exception ex) {
             log.error("Error during user registration", ex);

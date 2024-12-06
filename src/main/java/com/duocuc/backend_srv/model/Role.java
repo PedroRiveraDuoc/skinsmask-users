@@ -36,45 +36,44 @@ public class Role {
   }
 
   // Getters y Setters
-  public Long getId() {
+  public Long getId(){
     return id;
   }
 
-  // Generalmente, el setter de 'id' no es necesario si el ID es autogenerado
-  public void setId(Long id) {
+  public void setId(Long id){
     this.id = id;
   }
 
-  public String getName() {
+  public String getName(){
     return name;
   }
 
-  public void setName(String name) {
+  public void setName(String name){
     this.name = name;
   }
 
-  public String getCode() {
+  public String getCode(){
     return code;
   }
 
-  public void setCode(String code) {
+  public void setCode(String code){
     this.code = code;
   }
 
-  public Set<User> getUsers() {
+  public Set<User> getUsers(){
     return users;
   }
 
-  public void setUsers(Set<User> users) {
+  public void setUsers(Set<User> users){
     this.users = users;
   }
 
   // Implementación de equals() y hashCode()
   @Override
-  public boolean equals(Object o) {
-    if (this == o)
+  public boolean equals(Object o){
+    if(this == o)
       return true;
-    if (o == null || getClass() != o.getClass())
+    if(o == null || getClass() != o.getClass())
       return false;
 
     Role role = (Role) o;
@@ -82,13 +81,13 @@ public class Role {
   }
 
   @Override
-  public int hashCode() {
+  public int hashCode(){
     return Objects.hash(name, code);
   }
 
   // toString para depuración
   @Override
-  public String toString() {
+  public String toString(){
     return "Role{" +
         "id=" + id +
         ", name='" + name + '\'' +

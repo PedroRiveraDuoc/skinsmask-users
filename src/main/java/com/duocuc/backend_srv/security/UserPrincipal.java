@@ -15,22 +15,26 @@ public class UserPrincipal implements UserDetails {
   private String username;
   private String email;
   private String password;
+  private String firstName; // Campo añadido
+  private String lastName;  // Campo añadido
   private Collection<? extends GrantedAuthority> authorities;
 
-  // Constructor completo
-  public UserPrincipal(Long id, String username, String email, String password,
+  // Constructor completo actualizado
+  public UserPrincipal(Long id, String username, String email, String password, String firstName, String lastName,
       Collection<? extends GrantedAuthority> authorities) {
     this.id = id;
     this.username = username;
     this.email = email;
     this.password = password;
+    this.firstName = firstName; // Asignar el valor
+    this.lastName = lastName;   // Asignar el valor
     this.authorities = authorities;
   }
 
-  // Constructor a partir de un User
+  // Constructor a partir de un User actualizado
   public static UserPrincipal create(User user) {
     List<GrantedAuthority> authorities = user.getRoles().stream()
-        .map(role -> new SimpleGrantedAuthority(role.getName()))
+        .map(role -> new SimpleGrantedAuthority(role.getCode()))
         .collect(Collectors.toList());
 
     return new UserPrincipal(
@@ -38,7 +42,18 @@ public class UserPrincipal implements UserDetails {
         user.getUsername(),
         user.getEmail(),
         user.getPassword(),
+        user.getFirstName(), // Asignar el firstName
+        user.getLastName(),  // Asignar el lastName
         authorities);
+  }
+
+  // Getters para los nuevos campos
+  public String getFirstName() {
+    return firstName;
+  }
+
+  public String getLastName() {
+    return lastName;
   }
 
   public Long getId() {

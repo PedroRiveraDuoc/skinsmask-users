@@ -53,20 +53,20 @@ public class JwtUtils {
      * @return The generated JWT token.
      */
     public String generateJwtToken(Authentication authentication) {
-    UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
+        UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
 
-    return Jwts.builder()
-        .setSubject(userPrincipal.getEmail()) // Email como subject
-        .claim("id", userPrincipal.getId()) // Agregar ID
-        .claim("username", userPrincipal.getUsername()) // Agregar username
-        .claim("roles", userPrincipal.getAuthorities().stream()
-            .map(GrantedAuthority::getAuthority)
-            .collect(Collectors.joining(",")))
-        .setIssuedAt(new Date())
-        .setExpiration(new Date((new Date()).getTime() + jwtConfig.getExpirationMs()))
-        .signWith(getSigningKey(), SignatureAlgorithm.HS512)
-        .compact();
-}
+        return Jwts.builder()
+            .setSubject(userPrincipal.getEmail()) // Email como subject
+            .claim("id", userPrincipal.getId()) // Agregar ID
+            .claim("username", userPrincipal.getUsername()) // Agregar username
+            .claim("roles", userPrincipal.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .collect(Collectors.joining(",")))
+            .setIssuedAt(new Date())
+            .setExpiration(new Date((new Date()).getTime() + jwtConfig.getExpirationMs()))
+            .signWith(getSigningKey(), SignatureAlgorithm.HS512)
+            .compact();
+    }
 
     /**
      * Validates the JWT token.
