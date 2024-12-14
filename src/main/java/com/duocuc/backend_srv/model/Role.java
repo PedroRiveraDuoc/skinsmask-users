@@ -25,6 +25,11 @@ public class Role {
   @JsonIgnore
   private Set<User> users = new HashSet<>();
 
+
+  public Role(String code) {
+    this.code = code;
+}
+
   // Constructor sin parámetros
   public Role() {
   }

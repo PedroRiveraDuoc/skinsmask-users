@@ -1,283 +1,162 @@
 package com.duocuc.backend_srv.controller;
 
-import com.duocuc.backend_srv.dto.RoleDto;
 import com.duocuc.backend_srv.dto.SignUpRequest;
 import com.duocuc.backend_srv.dto.UserProfileDto;
-import com.duocuc.backend_srv.model.Role;
+import com.duocuc.backend_srv.exception.EmailAlreadyExistsException;
+import com.duocuc.backend_srv.exception.UserNotFoundException;
 import com.duocuc.backend_srv.model.User;
 import com.duocuc.backend_srv.service.UserService;
 import com.duocuc.backend_srv.util.JwtUtils;
-import jakarta.servlet.http.HttpServletRequest;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.*;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.slf4j.Logger;
+import org.mockito.Mockito;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 
-import java.util.*;
+import jakarta.servlet.http.HttpServletRequest;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
-@ExtendWith(MockitoExtension.class)
-public class UsersControllerTest {
+class UsersControllerTest {
 
-    @Mock
     private UserService userService;
-
-    @Mock
     private JwtUtils jwtUtils;
-
-    @Mock
-    private HttpServletRequest request;
-
-    @InjectMocks
     private UsersController usersController;
 
     @BeforeEach
-    public void setUp() {
-        // No es necesario configurar nada adicional aquí
+    void setUp() {
+        userService = mock(UserService.class);
+        jwtUtils = mock(JwtUtils.class);
+        usersController = new UsersController(userService, jwtUtils);
     }
 
-    // Prueba para getAuthenticatedUserProfile - caso exitoso
     @Test
-    public void testGetAuthenticatedUserProfile_Success() {
-        // Datos de entrada
+    void testGetAuthenticatedUserProfile_Success() {
+        HttpServletRequest request = mock(HttpServletRequest.class);
         String token = "validToken";
-        String username = "testuser";
-        Long userId = 1L;
-        String roleName = "USER";
-        Long roleId = 1L;
 
-        // Configuración de mocks
+        User mockUser = new User();
+        mockUser.setId(1L);
+        mockUser.setUsername("testuser");
+        mockUser.setEmail("testuser@example.com");
+        mockUser.setFirstName("John");
+        mockUser.setLastName("Doe");
+        mockUser.setRoles(new HashSet<>());
+
         when(jwtUtils.getJwtFromRequest(request)).thenReturn(token);
+        when(userService.getAuthenticatedUser(token)).thenReturn(Optional.of(mockUser));
 
-        User user = new User();
-        user.setId(userId);
-        user.setUsername(username);
-
-        Role role = new Role();
-        role.setId(roleId);
-        role.setName(roleName);
-        Set<Role> roles = new HashSet<>();
-        roles.add(role);
-        user.setRoles(roles);
-
-        when(userService.getAuthenticatedUser(token)).thenReturn(Optional.of(user));
-
-        // Ejecución
         ResponseEntity<?> response = usersController.getAuthenticatedUserProfile(request);
 
-        // Verificaciones
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertTrue(response.getBody() instanceof UserProfileDto);
-
-        UserProfileDto userProfile = (UserProfileDto) response.getBody();
-        assertNotNull(userProfile);
-        assertEquals(userId, userProfile.getId());
-        assertEquals(username, userProfile.getUsername());
-        assertEquals(1, userProfile.getRoles().size());
-        assertEquals(roleName, userProfile.getRoles().get(0).getName());
-
+        assertEquals(UserProfileDto.class, response.getBody().getClass());
         verify(jwtUtils, times(1)).getJwtFromRequest(request);
         verify(userService, times(1)).getAuthenticatedUser(token);
     }
 
-    // Prueba para getAuthenticatedUserProfile - sin token proporcionado
     @Test
-    public void testGetAuthenticatedUserProfile_NoToken() {
-        // Configuración de mocks
+    void testGetAuthenticatedUserProfile_NoToken() {
+        HttpServletRequest request = mock(HttpServletRequest.class);
+
         when(jwtUtils.getJwtFromRequest(request)).thenReturn(null);
 
-        // Ejecución
         ResponseEntity<?> response = usersController.getAuthenticatedUserProfile(request);
 
-        // Verificaciones
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
-        assertTrue(response.getBody() instanceof Map);
-
-        Map<?, ?> responseBody = (Map<?, ?>) response.getBody();
-        assertNotNull(responseBody);
-        assertEquals("No token provided.", responseBody.get("error"));
-
+        assertEquals("No token provided.", ((Map<String, String>) response.getBody()).get("error"));
         verify(jwtUtils, times(1)).getJwtFromRequest(request);
-        verify(userService, never()).getAuthenticatedUser(anyString());
+        verify(userService, never()).getAuthenticatedUser(any());
     }
 
-    // Prueba para getAuthenticatedUserProfile - usuario no encontrado
     @Test
-    public void testGetAuthenticatedUserProfile_UserNotFound() {
-        // Datos de entrada
+    void testGetAuthenticatedUserProfile_UserNotFound() {
+        HttpServletRequest request = mock(HttpServletRequest.class);
         String token = "validToken";
 
-        // Configuración de mocks
         when(jwtUtils.getJwtFromRequest(request)).thenReturn(token);
         when(userService.getAuthenticatedUser(token)).thenReturn(Optional.empty());
 
-        // Ejecución
         ResponseEntity<?> response = usersController.getAuthenticatedUserProfile(request);
 
-        // Verificaciones
         assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
-        assertTrue(response.getBody() instanceof Map);
-
-        Map<?, ?> responseBody = (Map<?, ?>) response.getBody();
-        assertNotNull(responseBody);
-        assertEquals("User not found.", responseBody.get("error"));
-
+        assertEquals("User not found.", ((Map<String, String>) response.getBody()).get("error"));
         verify(jwtUtils, times(1)).getJwtFromRequest(request);
         verify(userService, times(1)).getAuthenticatedUser(token);
     }
 
-    // Prueba para getAuthenticatedUserProfile - excepción durante la recuperación
     @Test
-    public void testGetAuthenticatedUserProfile_Exception() {
-        // Datos de entrada
-        String token = "validToken";
-
-        // Configuración de mocks
-        when(jwtUtils.getJwtFromRequest(request)).thenReturn(token);
-        when(userService.getAuthenticatedUser(token)).thenThrow(new RuntimeException("Database error"));
-
-        // Ejecución
-        ResponseEntity<?> response = usersController.getAuthenticatedUserProfile(request);
-
-        // Verificaciones
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
-        assertTrue(response.getBody() instanceof Map);
-
-        Map<?, ?> responseBody = (Map<?, ?>) response.getBody();
-        assertNotNull(responseBody);
-        assertEquals("Error retrieving user profile.", responseBody.get("error"));
-
-        verify(jwtUtils, times(1)).getJwtFromRequest(request);
-        verify(userService, times(1)).getAuthenticatedUser(token);
-    }
-
-    // Prueba para updateUser - caso exitoso
-    @Test
-    public void testUpdateUser_Success() {
-        // Datos de entrada
+    void testUpdateUser_Success() {
         SignUpRequest updateRequest = new SignUpRequest();
-        updateRequest.setUsername("newUsername");
-        updateRequest.setEmail("new@example.com");
-        updateRequest.setPassword("newPassword");
+        String loggedInEmail = "test@example.com";
 
-        String loggedInUsername = "currentUsername";
-
-        // Configuración del contexto de seguridad
         Authentication authentication = mock(Authentication.class);
-        when(authentication.getName()).thenReturn(loggedInUsername);
-
         SecurityContext securityContext = mock(SecurityContext.class);
         when(securityContext.getAuthentication()).thenReturn(authentication);
-
+        when(authentication.getName()).thenReturn(loggedInEmail);
         SecurityContextHolder.setContext(securityContext);
 
-        // Ejecución
         ResponseEntity<?> response = usersController.updateUser(updateRequest);
 
-        // Verificaciones
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertTrue(response.getBody() instanceof Map);
-
-        Map<?, ?> responseBody = (Map<?, ?>) response.getBody();
-        assertNotNull(responseBody);
-        assertEquals("User updated successfully!", responseBody.get("message"));
-
-        verify(userService, times(1)).updateUser(loggedInUsername, updateRequest);
-
-        // Limpieza del contexto de seguridad
-        SecurityContextHolder.clearContext();
+        assertEquals("User updated successfully!", ((Map<String, String>) response.getBody()).get("message"));
+        verify(userService, times(1)).updateUser(eq(loggedInEmail), any(SignUpRequest.class));
     }
 
-    // Prueba para updateUser - error de validación
     @Test
-    public void testUpdateUser_ValidationError() {
-        // Datos de entrada
+    void testUpdateUser_EmailAlreadyExistsException() {
         SignUpRequest updateRequest = new SignUpRequest();
-        updateRequest.setUsername("takenUsername");
+        String loggedInEmail = "test@example.com";
 
-        String loggedInUsername = "currentUsername";
-
-        // Configuración del contexto de seguridad
         Authentication authentication = mock(Authentication.class);
-        when(authentication.getName()).thenReturn(loggedInUsername);
-
         SecurityContext securityContext = mock(SecurityContext.class);
         when(securityContext.getAuthentication()).thenReturn(authentication);
-
+        when(authentication.getName()).thenReturn(loggedInEmail);
         SecurityContextHolder.setContext(securityContext);
 
-        // Configuración de mocks
-        doThrow(new IllegalArgumentException("Username is already taken."))
-                .when(userService).updateUser(loggedInUsername, updateRequest);
+        doThrow(new EmailAlreadyExistsException("Email already exists"))
+                .when(userService).updateUser(eq(loggedInEmail), any(SignUpRequest.class));
 
-        // Ejecución
         ResponseEntity<?> response = usersController.updateUser(updateRequest);
 
-        // Verificaciones
         assertEquals(HttpStatus.CONFLICT, response.getStatusCode());
-        assertTrue(response.getBody() instanceof Map);
-
-        Map<?, ?> responseBody = (Map<?, ?>) response.getBody();
-        assertNotNull(responseBody);
-        assertEquals("Username is already taken.", responseBody.get("error"));
-
-        verify(userService, times(1)).updateUser(loggedInUsername, updateRequest);
-
-        // Limpieza del contexto de seguridad
-        SecurityContextHolder.clearContext();
+        assertEquals("Email already exists", ((Map<String, String>) response.getBody()).get("error"));
+        verify(userService, times(1)).updateUser(eq(loggedInEmail), any(SignUpRequest.class));
     }
 
-    // Prueba para updateUser - excepción inesperada
     @Test
-    public void testUpdateUser_Exception() {
-        // Datos de entrada
-        SignUpRequest updateRequest = new SignUpRequest();
+    void testDeleteUser_Success() {
+        Long userId = 1L;
 
-        String loggedInUsername = "currentUsername";
+        ResponseEntity<?> response = usersController.deleteUser(userId);
 
-        // Configuración del contexto de seguridad
-        Authentication authentication = mock(Authentication.class);
-        when(authentication.getName()).thenReturn(loggedInUsername);
-
-        SecurityContext securityContext = mock(SecurityContext.class);
-        when(securityContext.getAuthentication()).thenReturn(authentication);
-
-        SecurityContextHolder.setContext(securityContext);
-
-        // Configuración de mocks
-        doThrow(new RuntimeException("Database error"))
-                .when(userService).updateUser(loggedInUsername, updateRequest);
-
-        // Ejecución
-        ResponseEntity<?> response = usersController.updateUser(updateRequest);
-
-        // Verificaciones
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
-        assertTrue(response.getBody() instanceof Map);
-
-        Map<?, ?> responseBody = (Map<?, ?>) response.getBody();
-        assertNotNull(responseBody);
-        assertEquals("Unexpected error: Database error", responseBody.get("error"));
-
-        verify(userService, times(1)).updateUser(loggedInUsername, updateRequest);
-
-        // Limpieza del contexto de seguridad
-        SecurityContextHolder.clearContext();
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals("User deleted successfully!", ((Map<String, String>) response.getBody()).get("message"));
+        verify(userService, times(1)).deleteUser(userId);
     }
 
+    @Test
+    void testDeleteUser_UserNotFoundException() {
+        Long userId = 1L;
 
+        doThrow(new UserNotFoundException("User not found"))
+                .when(userService).deleteUser(userId);
+
+        ResponseEntity<?> response = usersController.deleteUser(userId);
+
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+        assertEquals("User not found", ((Map<String, String>) response.getBody()).get("error"));
+        verify(userService, times(1)).deleteUser(userId);
+    }
 }

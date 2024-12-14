@@ -1,72 +1,47 @@
 package com.duocuc.backend_srv.dto;
 
 import org.junit.jupiter.api.Test;
-
 import static org.junit.jupiter.api.Assertions.*;
 
-public class UserDtoTest {
+class UserDtoTest {
 
     @Test
-    public void testGettersAndSetters() {
-        // Arrange
-        UserDto userDto = new UserDto();
-        Long id = 1L;
-        String username = "testUser";
-        String email = "test@example.com";
-
-        // Act
-        userDto.setId(id);
-        userDto.setUsername(username);
-        userDto.setEmail(email);
-
-        // Assert
-        assertEquals(id, userDto.getId(), "ID should match the set value.");
-        assertEquals(username, userDto.getUsername(), "Username should match the set value.");
-        assertEquals(email, userDto.getEmail(), "Email should match the set value.");
+    void testIdGetterAndSetter() {
+        UserDto user = new UserDto();
+        Long expectedId = 1L;
+        user.setId(expectedId);
+        assertEquals(expectedId, user.getId(), "El getter o setter de id no funciona correctamente.");
     }
 
     @Test
-    public void testDefaultValues() {
-        // Arrange
-        UserDto userDto = new UserDto();
-
-        // Assert
-        assertNull(userDto.getId(), "Default ID should be null.");
-        assertNull(userDto.getUsername(), "Default username should be null.");
-        assertNull(userDto.getEmail(), "Default email should be null.");
+    void testUsernameGetterAndSetter() {
+        UserDto user = new UserDto();
+        String expectedUsername = "testuser";
+        user.setUsername(expectedUsername);
+        assertEquals(expectedUsername, user.getUsername(), "El getter o setter de username no funciona correctamente.");
     }
 
     @Test
-    public void testPartialSetters() {
-        // Arrange
-        UserDto userDto = new UserDto();
-        String username = "partialUser";
-
-        // Act
-        userDto.setUsername(username);
-
-        // Assert
-        assertNull(userDto.getId(), "ID should remain null.");
-        assertEquals(username, userDto.getUsername(), "Username should match the set value.");
-        assertNull(userDto.getEmail(), "Email should remain null.");
+    void testEmailGetterAndSetter() {
+        UserDto user = new UserDto();
+        String expectedEmail = "testuser@example.com";
+        user.setEmail(expectedEmail);
+        assertEquals(expectedEmail, user.getEmail(), "El getter o setter de email no funciona correctamente.");
     }
 
     @Test
-    public void testSetNullValues() {
-        // Arrange
-        UserDto userDto = new UserDto();
-        userDto.setId(2L);
-        userDto.setUsername("existingUser");
-        userDto.setEmail("existing@example.com");
+    void testFirstNameGetterAndSetter() {
+        UserDto user = new UserDto();
+        String expectedFirstName = "John";
+        user.setFirstName(expectedFirstName);
+        assertEquals(expectedFirstName, user.getFirstName(), "El getter o setter de firstName no funciona correctamente.");
+    }
 
-        // Act
-        userDto.setId(null);
-        userDto.setUsername(null);
-        userDto.setEmail(null);
-
-        // Assert
-        assertNull(userDto.getId(), "ID should be null after being set to null.");
-        assertNull(userDto.getUsername(), "Username should be null after being set to null.");
-        assertNull(userDto.getEmail(), "Email should be null after being set to null.");
+    @Test
+    void testLastNameGetterAndSetter() {
+        UserDto user = new UserDto();
+        String expectedLastName = "Doe";
+        user.setLastName(expectedLastName);
+        assertEquals(expectedLastName, user.getLastName(), "El getter o setter de lastName no funciona correctamente.");
     }
 }

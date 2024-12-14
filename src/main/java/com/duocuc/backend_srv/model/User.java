@@ -3,6 +3,7 @@ package com.duocuc.backend_srv.model;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -112,8 +113,8 @@ public class User {
     return roles;
   }
 
-  public void setRoles(Set<Role> roles){
-    this.roles = roles;
+  public void setRoles(Set<Role> roleSet){
+    this.roles = roleSet;
   }
 
   // Método para agregar un rol al usuario

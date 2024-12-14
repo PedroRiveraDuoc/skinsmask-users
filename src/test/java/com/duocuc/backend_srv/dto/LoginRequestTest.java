@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Test;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class LoginRequestTest {
 
@@ -81,5 +82,20 @@ class LoginRequestTest {
         // Verificar que los getters devuelvan los valores correctos
         assertThat(loginRequest.getEmail()).isEqualTo("test@example.com");
         assertThat(loginRequest.getPassword()).isEqualTo("TestPassword");
+    }
+
+
+    @Test
+    void testConstructorWithParameters() {
+        // Arrange
+        String expectedEmail = "test@example.com";
+        String expectedPassword = "password123";
+
+        // Act
+        LoginRequest loginRequest = new LoginRequest(expectedEmail, expectedPassword);
+
+        // Assert
+        assertEquals(expectedEmail, loginRequest.getEmail(), "Email should match the value set in constructor");
+        assertEquals(expectedPassword, loginRequest.getPassword(), "Password should match the value set in constructor");
     }
 }

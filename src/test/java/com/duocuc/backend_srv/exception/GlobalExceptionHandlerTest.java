@@ -2,6 +2,8 @@ package com.duocuc.backend_srv.exception;
 
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
+
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -15,7 +17,15 @@ import static org.mockito.Mockito.when;
 
 class GlobalExceptionHandlerTest {
 
+
+    private GlobalExceptionHandler exceptionHandler;
+
     private final GlobalExceptionHandler handler = new GlobalExceptionHandler();
+
+    @BeforeEach
+    void setUp() {
+        exceptionHandler = new GlobalExceptionHandler();
+    }
 
     @Test
     void testHandleConstraintViolationException() {
@@ -70,5 +80,44 @@ class GlobalExceptionHandlerTest {
         assertNotNull(body);
         assertEquals("Unexpected error occurred", body.get("error"));
         assertEquals("Something went wrong", body.get("message"));
+    }
+
+    @Test
+    void testHandleUserNotFoundException() {
+        // Arrange
+        UserNotFoundException exception = new UserNotFoundException("User not found");
+
+        // Act
+        ResponseEntity<Map<String, String>> response = exceptionHandler.handleUserNotFoundException(exception);
+
+        // Assert
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+        assertEquals("User not found", response.getBody().get("error"));
+    }
+
+    @Test
+    void testHandleUsernameAlreadyExistsException() {
+        // Arrange
+        UsernameAlreadyExistsException exception = new UsernameAlreadyExistsException("Username already exists");
+
+        // Act
+        ResponseEntity<Map<String, String>> response = exceptionHandler.handleUsernameAlreadyExistsException(exception);
+
+        // Assert
+        assertEquals(HttpStatus.CONFLICT, response.getStatusCode());
+        assertEquals("Username already exists", response.getBody().get("error"));
+    }
+
+    @Test
+    void testHandleEmailAlreadyExistsException() {
+        // Arrange
+        EmailAlreadyExistsException exception = new EmailAlreadyExistsException("Email already exists");
+
+        // Act
+        ResponseEntity<Map<String, String>> response = exceptionHandler.handleEmailAlreadyExistsException(exception);
+
+        // Assert
+        assertEquals(HttpStatus.CONFLICT, response.getStatusCode());
+        assertEquals("Email already exists", response.getBody().get("error"));
     }
 }
